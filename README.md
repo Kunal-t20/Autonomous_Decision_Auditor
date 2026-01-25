@@ -1,8 +1,6 @@
 ### Project Structure
 .
-
-autonomous-decision-auditor/
-
+```
 │
 ├── app/
 │   ├── main.py                  # FastAPI entry point
@@ -55,6 +53,8 @@ autonomous-decision-auditor/
 ├── requirements.txt              # Python dependencies
 ├── Dockerfile                    # Container setup
 └── README.md                     # Project explanation & usage
+
+```
 
 
 
