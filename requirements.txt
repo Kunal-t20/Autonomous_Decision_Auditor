@@ -9,3 +9,5 @@ sqlalchemy
 psycopg2-binary
 python-dotenv
 pytest
+langchain_groq
+langchain_core
