@@ -10,7 +10,7 @@ def claim_extractor(state:AuditState):
 
     Rules:
     1. Each line must contain one claim only.
-    2. Claim must be readable and checkavle.
+    2. Claim must be readable and checkable.
     3. Do not merge multiple idea in it.
     4. Do not expain anything.
     5. Return only a numbered list.
