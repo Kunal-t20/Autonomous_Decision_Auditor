@@ -14,9 +14,7 @@ test_state = {
         "Official credit report showing score 780",
         "Salary slips for last 12 months"
     ],
-
-    "claim_evidence_map": {},   # not used here
-    "inconsistencies": []      
+     
 }
 
 updated_state = counterfactual(test_state)
