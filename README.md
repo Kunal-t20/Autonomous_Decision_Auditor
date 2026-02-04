@@ -59,7 +59,8 @@
 - confidence score = gives mathamatical proof 
 
 #### Project flow
-
+.
+```
 Reasoning Paragraph
       ↓
 Claim Extractor
@@ -73,7 +74,7 @@ Counterfactual
 Confidence Scorer
       ↓
 Verdict Engine (final decision)
-
+```
 
 
 #### Python Virtual Environment Setup:
