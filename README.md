@@ -58,6 +58,22 @@
 - counterfactual = stress test/strenght of claim; check wheather claim strong or not
 - confidence score = gives mathamatical proof 
 
+#### Project flow
+
+Reasoning Paragraph
+      ↓
+Claim Extractor
+      ↓
+Evidence Mapper
+      ↓
+Consistency Checker
+      ↓
+Counterfactual
+      ↓
+Confidence Scorer
+      ↓
+Verdict Engine (final decision)
+
 
 
 #### Python Virtual Environment Setup:
