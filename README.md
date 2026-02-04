@@ -43,11 +43,7 @@
 │       └── helpers.py            # Small reusable helpers
 │
 ├── tests/
-│   ├── test_claim_extraction.py
-│   ├── test_evidence_mapping.py
-│   ├── test_logic_check.py
-│   ├── test_counterfactual.py
-│   └── test_end_to_end.py
+│        # check all agent and engine also end to end project text 
 │
 ├── .env.example                  # Environment variables template
 ├── requirements.txt              # Python dependencies
@@ -55,6 +51,12 @@
 └── README.md                     # Project explanation & usage
 
 ```
+#### Agents
+- Extractor = reasoning into sentence claims
+- evidence mapper = find proof for each claim
+- consistency cheaker = check wheather the evidence or proof is True or False
+- counterfactual = stress test/strenght of claim; check wheather claim strong or not
+- confidence score = gives mathamatical proof 
 
 
 
