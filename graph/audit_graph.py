@@ -5,9 +5,13 @@ from agents.counterfactual import counterfactual
 from agents.confidence_scorer import confidence_score
 from agents.state import AuditState
 
-from langgraph.graph import StateGraph,END
+from langgraph.graph import StateGraph, END
 from rules.verdict_engine import verdict_engine
 
+from graph.routing import (
+    route_after_evidence,
+    route_after_consistency,
+)
 
 # INIT GRAPH
 graph = StateGraph(AuditState)
@@ -23,13 +27,34 @@ graph.add_node("verdict_engine", verdict_engine)
 # ENTRY
 graph.set_entry_point("claim_extractor")
 
-# EDGES
-graph.add_edge("claim_extractor","evidence_mapper")
-graph.add_edge("evidence_mapper","consistency_checker")
-graph.add_edge("consistency_checker","counterfactual")
-graph.add_edge("counterfactual","confidence_scorer")
-graph.add_edge("confidence_scorer","verdict_engine")
-graph.add_edge("verdict_engine",END)
+# FIRST EDGE
+graph.add_edge("claim_extractor", "evidence_mapper")
 
-# COMPILE ONCE
+# EVIDENCE ROUTER
+graph.add_conditional_edges(
+    "evidence_mapper",
+    route_after_evidence,
+    {
+        "claim_extractor": "claim_extractor",
+        "consistency_checker": "consistency_checker",
+    },
+)
+
+# CONSISTENCY ROUTER
+graph.add_conditional_edges(
+    "consistency_checker",
+    route_after_consistency,
+    {
+        "counterfactual": "counterfactual",
+        "confidence_scorer": "confidence_scorer",
+    },
+)
+
+graph.add_edge("counterfactual", "confidence_scorer")
+
+# FINAL
+graph.add_edge("confidence_scorer", "verdict_engine")
+graph.add_edge("verdict_engine", END)
+
+# COMPILE
 audit_app = graph.compile()

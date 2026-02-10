@@ -2,9 +2,9 @@ from agents.state import AuditState
 from core.config import ACCEPT_THRESHOLD, ESCALATE_THRESHOLD
 from core.constants import ACCEPT, REJECT, ESCALATE
 
-def verdict_engine(state:AuditState):
 
-    confidence=state.get('confidence',0)
+def verdict_engine(state: AuditState) -> AuditState:
+    confidence = float(state.get("confidence", 0))
 
     if confidence >= ACCEPT_THRESHOLD:
         verdict = ACCEPT
@@ -17,4 +17,3 @@ def verdict_engine(state:AuditState):
 
     state["verdict"] = verdict
     return state
-
