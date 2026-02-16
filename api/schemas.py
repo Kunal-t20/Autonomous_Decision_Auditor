@@ -12,3 +12,5 @@ class AuditResponse(BaseModel):
     verdict: Literal["ACCEPT", "REJECT", "ESCALATE"]
     confidence: float = Field(..., ge=0.0, le=100.0)
     explanation: str
+
+
