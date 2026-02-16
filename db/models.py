@@ -1,10 +1,16 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy import Column, Integer, String, Float, DateTime
+from datetime import datetime
+from db.session import Base
 
-DATABASE_URL = "sqlite:///./audit.db"
+class AuditRecord(Base):
+    __tablename__ = "audits"
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+    id = Column(Integer, primary_key=True, index=True)
+    reasoning = Column(String)
+    verdict = Column(String)
+    confidence = Column(Float)
+    explanation = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
-Base = declarative_base()
+
