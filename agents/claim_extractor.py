@@ -1,51 +1,47 @@
-from agents.state  import AuditState
+from agents.state import AuditState
 from utils.llm import call_llm
 
 
-def claim_extractor(state:AuditState):
-    reasoning = state["reasoning"]
+def claim_extractor(state: AuditState):
 
-    prompt=f"""
-    break the following resoning into the minimal factual claims.
+    reasoning = state.get("reasoning", "")
 
-    Rules:
-    1. Each line must contain one claim only.
-    2. Claim must be readable and checkable.
-    3. Do not merge multiple idea in it.
-    4. Do not expain anything.
-    5. Return only a numbered list.
+    prompt = f"""
+Break the following reasoning into minimal factual claims.
 
-    Resoning:
-    {reasoning}
+Rules:
+1. One claim per line.
+2. Claims must be checkable.
+3. Do not merge ideas.
+4. Do not explain.
+5. Return ONLY numbered list.
 
+Reasoning:
+{reasoning}
 """
-    #llm call
-    response=call_llm(prompt)
-    #retrieve the content from object created by llm
-    raw_output=response.content if hasattr(response, "content") else str(response)
 
+    response = call_llm(prompt)
+    raw_output = response.content if hasattr(response, "content") else str(response)
 
-    #clean and splite raw output 
-    lines=raw_output.split("\n")
+    lines = raw_output.split("\n")
+    claims = []
 
-    claims=[]
     for line in lines:
-        line=line.strip()
+        line = line.strip()
 
-        if not line:
+        if not line or len(line) < 3:
             continue
 
         if "." in line[:3]:
             line = line.split(".", 1)[1].strip()
+
         if line.startswith("-"):
             line = line[1:].strip()
 
+        if line.lower().startswith("explanation"):
+            continue
+
         claims.append(line)
 
-    
-    state["claims"]=claims
-
+    state["claims"] = claims
     return state
-
-
-

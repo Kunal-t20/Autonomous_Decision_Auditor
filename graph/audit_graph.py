@@ -13,10 +13,10 @@ from graph.routing import (
     route_after_consistency,
 )
 
-# INIT GRAPH
+# ---------------- INIT GRAPH ----------------
 graph = StateGraph(AuditState)
 
-# NODES
+# ---------------- NODES ----------------
 graph.add_node("claim_extractor", claim_extractor)
 graph.add_node("evidence_mapper", evidence_mapper)
 graph.add_node("consistency_checker", consistency_checker)
@@ -24,13 +24,13 @@ graph.add_node("counterfactual", counterfactual)
 graph.add_node("confidence_scorer", confidence_score)
 graph.add_node("verdict_engine", verdict_engine)
 
-# ENTRY
+# ---------------- ENTRY ----------------
 graph.set_entry_point("claim_extractor")
 
-# FIRST EDGE
+# ---------------- BASE FLOW ----------------
 graph.add_edge("claim_extractor", "evidence_mapper")
 
-# EVIDENCE ROUTER
+# ---------------- EVIDENCE ROUTER ----------------
 graph.add_conditional_edges(
     "evidence_mapper",
     route_after_evidence,
@@ -40,7 +40,7 @@ graph.add_conditional_edges(
     },
 )
 
-# CONSISTENCY ROUTER
+# ---------------- CONSISTENCY ROUTER ----------------
 graph.add_conditional_edges(
     "consistency_checker",
     route_after_consistency,
@@ -50,11 +50,12 @@ graph.add_conditional_edges(
     },
 )
 
+# ---------------- LINEAR FLOW ----------------
 graph.add_edge("counterfactual", "confidence_scorer")
-
-# FINAL
 graph.add_edge("confidence_scorer", "verdict_engine")
+
+# ---------------- END ----------------
 graph.add_edge("verdict_engine", END)
 
-# COMPILE
+# ---------------- COMPILE ----------------
 audit_app = graph.compile()

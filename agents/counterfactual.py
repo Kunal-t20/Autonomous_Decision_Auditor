@@ -2,9 +2,13 @@ from agents.state import AuditState
 from utils.llm import call_llm
 
 
-def counterfactual(state: AuditState):#stress testing
+def counterfactual(state: AuditState):
 
-    claims = state["claims"]
+    claims = state.get("claims", [])
+
+    if not claims:
+        state["counterfactual_issues"] = []
+        return state
 
     counterfactual_issues = []
 
@@ -18,14 +22,13 @@ If this claim becomes FALSE, would the final decision change?
 Claim:
 {claim}
 
-Return ONLY one line:
+Return ONLY:
 ROBUST
 OR
-FRAGILE: <short reason>
+FRAGILE: <reason>
 """
 
         response = call_llm(prompt)
-
         raw_output = response.content if hasattr(response, "content") else str(response)
         raw_output = raw_output.strip()
 

@@ -1,19 +1,15 @@
-from typing import TypedDict,List,Dict,Optional,Literal
+from typing import TypedDict, List, Dict
 
-class AuditState(TypedDict,total=False): # because it default take all entities but initially some entities like claim not present 
-    #INPUT
-    decision : str
-    reasoning : str
-    evidence : List[str]
 
-    #AGENT GENERATED
-    claims : List[str]
-    evidence_map : Dict[str,Dict[str,List[str]]]
-    inconsistencies : List[str]
-    fragility_score : Optional[float]
-
-    #FIANAL OUTPUT 
-    confidence : Optional[float]
-    verdict :Optional[Literal["ACCEPT","REJECT","ESCALATE"]]
-    explaination : Optional[str]
-
+class AuditState(TypedDict):
+    reasoning: str
+    claims: List[str]
+    evidence: List[str]
+    claim_evidence_map: Dict[str, List[str]]
+    inconsistencies: List[Dict]
+    counterfactual_issues: List[Dict]
+    inconsistency_score: float
+    confidence: float
+    verdict: str
+    explanation: str
+    retry_count: int

@@ -13,8 +13,13 @@ def run_audit(request: AuditRequest):
         "reasoning": request.reasoning,
         "claims": [],
         "evidence": [],
+        "claim_evidence_map": {},
+        "inconsistencies": [],
+        "counterfactual_issues": [],
         "inconsistency_score": 0.0,
         "confidence": 0.0,
+        "verdict": "",
+        "explanation": "",
         "retry_count": 0,
     }
 
@@ -23,4 +28,5 @@ def run_audit(request: AuditRequest):
     return {
         "verdict": result.get("verdict"),
         "confidence": result.get("confidence"),
+        "explanation": result.get("explanation"),
     }
