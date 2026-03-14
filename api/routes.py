@@ -1,9 +1,19 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 from graph.audit_graph import audit_app
-from api.schemas import AuditRequest, AuditResponse
+from api.schemas import AuditRequest, AuditResponse, ResolutionRequest
 from agents.state import AuditState
+from db.models import AuditRecord
+from db.session import SessionLocal
 
 router = APIRouter()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 @router.post("/audit", response_model=AuditResponse)
@@ -12,7 +22,9 @@ def run_audit(request: AuditRequest):
     state: AuditState = {
         "reasoning": request.reasoning,
         "claims": [],
-        "evidence": [],
+        "evidence": request.evidence,
+        "policies": request.policies,
+        "policy_violations": [],
         "claim_evidence_map": {},
         "inconsistencies": [],
         "counterfactual_issues": [],
@@ -24,9 +36,34 @@ def run_audit(request: AuditRequest):
     }
 
     result = audit_app.invoke(state)
+    
+    breakdown = {
+        "claim_evidence_map": result.get("claim_evidence_map", {}),
+        "inconsistencies": result.get("inconsistencies", []),
+        "counterfactual_issues": result.get("counterfactual_issues", []),
+        "policy_violations": result.get("policy_violations", [])
+    }
 
     return {
         "verdict": result.get("verdict"),
         "confidence": result.get("confidence"),
         "explanation": result.get("explanation"),
+        "breakdown": breakdown
     }
+
+@router.post("/audit/{audit_id}/resolve")
+def resolve_audit(audit_id: int, request: ResolutionRequest, db: Session = Depends(get_db)):
+    record = db.query(AuditRecord).filter(AuditRecord.id == audit_id).first()
+    
+    if not record:
+        raise HTTPException(status_code=404, detail="Audit not found")
+        
+    if record.verdict != "ESCALATE" or record.status == "COMPLETED":
+        raise HTTPException(status_code=400, detail="Audit does not require resolution")
+        
+    record.human_verdict = request.final_verdict
+    record.reviewer_notes = request.reviewer_notes
+    record.status = "COMPLETED"
+    
+    db.commit()
+    return {"status": "success", "audit_id": audit_id, "final_verdict": request.final_verdict}

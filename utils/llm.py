@@ -10,10 +10,6 @@ TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
 
 def call_llm(prompt: str) -> str:
 
-    # ----- TEST MODE -----
-    if TEST_MODE:
-        return mock_llm(prompt)
-
     # ----- REAL LLM -----
     groq_api_key = os.getenv("groq_api_key")
 

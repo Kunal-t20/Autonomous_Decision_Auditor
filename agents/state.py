@@ -5,6 +5,8 @@ class AuditState(TypedDict):
     reasoning: str
     claims: List[str]
     evidence: List[str]
+    policies: List[str]
+    policy_violations: List[str]
     claim_evidence_map: Dict[str, List[str]]
     inconsistencies: List[Dict]
     counterfactual_issues: List[Dict]

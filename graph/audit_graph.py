@@ -16,6 +16,8 @@ from graph.routing import (
     route_after_consistency,
 )
 
+from agents.policy_checker import policy_checker
+
 # ---------------- INIT GRAPH ----------------
 graph = StateGraph(AuditState)
 
@@ -26,6 +28,7 @@ graph.add_node("evidence_mapper", evidence_mapper)
 graph.add_node("retry_claim_extractor", increment_retry)
 
 graph.add_node("consistency_checker", consistency_checker)
+graph.add_node("policy_checker", policy_checker)
 graph.add_node("counterfactual", counterfactual)
 graph.add_node("confidence_scorer", confidence_score)
 graph.add_node("verdict_engine", verdict_engine)
@@ -53,11 +56,13 @@ graph.add_conditional_edges(
     route_after_consistency,
     {
         "counterfactual": "counterfactual",
-        "confidence_scorer": "confidence_scorer",
+        "policy_checker": "policy_checker",
     },
 )
 
 # ---------------- LINEAR FLOW ----------------
+graph.add_edge("policy_checker", "counterfactual")
+
 graph.add_edge("counterfactual", "confidence_scorer")
 graph.add_edge("confidence_scorer", "verdict_engine")
 

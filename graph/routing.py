@@ -21,4 +21,4 @@ def route_after_consistency(state):
     if score > INCONSISTENCY_THRESHOLD:
         return "counterfactual"
 
-    return "confidence_scorer"
+    return "policy_checker"
