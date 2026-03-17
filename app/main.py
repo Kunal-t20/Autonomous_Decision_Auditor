@@ -1,15 +1,17 @@
 from api.routes import router
 from fastapi import FastAPI
 
-app=FastAPI()
+from db.session import engine, Base
+
+app = FastAPI()
 
 app.include_router(router)
 
 @app.get('/')
 def health():
-    return {"health:Okay"}
+    return {"health": "OK"}
 
-from db.session import engine, Base
-from db.models import AuditRecord
 
-Base.metadata.create_all(bind=engine)
+@app.on_event("startup")
+def on_startup():
+    Base.metadata.create_all(bind=engine)
