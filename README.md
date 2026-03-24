@@ -151,7 +151,7 @@ http://127.0.0.1:8000/docs
 
 #### Database
 
-Default: SQLite
+Uses **PostgreSQL** (e.g. **Neon**). Set `DATABASE_URL` in `.env` (see [`.env.example`](.env.example)).
 
 Automatically stores audit history:
 
@@ -164,3 +164,51 @@ Confidence
 Explanation
 
 Timestamp
+
+#### Redis (optional)
+
+Redis caches **LLM responses** (same model + temperature + prompt) to reduce latency and API cost. It does **not** replace PostgreSQL.
+
+| Variable | Description |
+|----------|-------------|
+| `REDIS_ENABLED` | `true` / `false` (default: off for local dev without Redis) |
+| `REDIS_URL` | e.g. `redis://localhost:6379/0` or managed Redis URL |
+| `LLM_CACHE_TTL_SECONDS` | TTL for cached LLM text (default `86400`) |
+| `LLM_CACHE_KEY_PREFIX` | Key namespace prefix (default `llm:v1:`) |
+| `RATE_LIMIT_ENABLED` | `true` to rate-limit `POST /audit` (requires Redis) |
+| `RATE_LIMIT_PER_MINUTE` | Max requests per client IP per minute |
+
+- **`GET /health`** — reports `database` and `redis` status (`redis` is `disabled` when `REDIS_ENABLED=false`).
+
+#### Frontend (`frontend/`)
+
+The UI is **React + Vite** (JSX) with **TanStack Query**, themed for an AI/decision workflow (dark slate, cyan/violet accents).
+
+```bash
+cd frontend
+npm install
+copy .env.example .env   # optional: set VITE_API_URL (default http://127.0.0.1:8000)
+npm run dev
+```
+
+Open **http://localhost:5173** with the API running on port **8000**. CORS allows the Vite dev origin.
+
+- **`POST /audit`** — form submits reasoning, evidence lines, policy lines.
+- **`POST /audit/{audit_id}/resolve`** — shown when verdict is **ESCALATE** (uses **`audit_id`** from the audit response).
+
+Production build: `npm run build` → static files in `frontend/dist/`.
+
+#### Docker
+
+```bash
+docker compose up --build
+```
+
+Set `DATABASE_URL` in `.env` (Neon or local Postgres). Compose wires **`REDIS_URL=redis://redis:6379/0`** for the app service.
+
+#### CI/CD
+
+GitHub Actions (`.github/workflows/ci.yml`):
+
+- **test** job: Postgres + Redis services, `TEST_MODE=true`, `pytest`
+- **docker-build** job: builds the Docker image (no push; add registry login + `push: true` when you deploy)

@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from graph.audit_graph import audit_app
 from api.schemas import AuditRequest, AuditResponse, ResolutionRequest
 from agents.state import AuditState
 from db.models import AuditRecord
 from db.session import SessionLocal
+from services.redis_cache import rate_limit_exceeded
 
 router = APIRouter()
 
@@ -17,13 +18,16 @@ def get_db():
 
 
 @router.post("/audit", response_model=AuditResponse)
-def run_audit(request: AuditRequest):
+def run_audit(payload: AuditRequest, http_request: Request):
+    client_id = http_request.client.host if http_request.client else "unknown"
+    if rate_limit_exceeded(client_id):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
 
     state: AuditState = {
-        "reasoning": request.reasoning,
+        "reasoning": payload.reasoning,
         "claims": [],
-        "evidence": request.evidence,
-        "policies": request.policies,
+        "evidence": payload.evidence,
+        "policies": payload.policies,
         "policy_violations": [],
         "claim_evidence_map": {},
         "inconsistencies": [],
@@ -33,6 +37,7 @@ def run_audit(request: AuditRequest):
         "verdict": "",
         "explanation": "",
         "retry_count": 0,
+        "audit_id": 0,
     }
 
     result = audit_app.invoke(state)
@@ -48,7 +53,8 @@ def run_audit(request: AuditRequest):
         "verdict": result.get("verdict"),
         "confidence": result.get("confidence"),
         "explanation": result.get("explanation"),
-        "breakdown": breakdown
+        "breakdown": breakdown,
+        "audit_id": result.get("audit_id"),
     }
 
 @router.post("/audit/{audit_id}/resolve")
@@ -66,4 +72,4 @@ def resolve_audit(audit_id: int, request: ResolutionRequest, db: Session = Depen
     record.status = "COMPLETED"
     
     db.commit()
-    return {"status": "success", "audit_id": audit_id, "final_verdict": request.final_verdict}
+    return {"status": "success", "audit_id": audit_id, "final_verdict": request.final_verdict}

@@ -11,3 +11,5 @@ python-dotenv
 pytest
 langchain_groq
 langchain_core
+redis
+fakeredis

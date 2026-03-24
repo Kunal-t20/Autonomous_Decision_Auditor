@@ -1,0 +1,39 @@
+# Local stack: API + Redis. Use Neon or set DATABASE_URL to the postgres service below.
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      REDIS_ENABLED: "true"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Optional local Postgres (uncomment and set DATABASE_URL=postgresql://auditor:auditor@postgres:5432/audits)
+  # postgres:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_USER: auditor
+  #     POSTGRES_PASSWORD: auditor
+  #     POSTGRES_DB: audits
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+#
+# volumes:
+#   pgdata:

@@ -15,3 +15,4 @@ class AuditState(TypedDict):
     verdict: str
     explanation: str
     retry_count: int
+    audit_id: int
