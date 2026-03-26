@@ -1,23 +1,71 @@
-def build_explanation(state: dict) -> str:
-    reasons = []
+def build_explanation(state: dict) -> dict:
 
-    evidence = state.get("evidence", [])
-    inconsistency = state.get("inconsistency_score", 0)
-    confidence = state.get("confidence", 0)
     verdict = state.get("verdict", "UNKNOWN")
+    confidence = state.get("confidence", 0)
+    risk = state.get("risk_level", "UNKNOWN")
 
-    if len(evidence) == 0:
-        reasons.append("no supporting evidence found")
+    inconsistencies = state.get("inconsistencies", [])
+    policy_violations = state.get("policy_violations", [])
+    counterfactual = state.get("counterfactual_issues", [])
 
-    if inconsistency > 0.6:
-        reasons.append("logical inconsistencies detected")
+    summary = []
+    details = []
+
+    # -----------------------------
+    # POLICY VIOLATIONS
+    # -----------------------------
+    for v in policy_violations:
+        details.append({
+            "type": "policy_violation",
+            "issue": v.get("issue"),
+            "severity": v.get("severity"),
+            "claim": v.get("claim")
+        })
+
+    # -----------------------------
+    # INCONSISTENCIES
+    # -----------------------------
+    for inc in inconsistencies:
+        details.append({
+            "type": "inconsistency",
+            "issue": inc.get("issue"),
+            "severity": inc.get("severity"),
+            "claim": inc.get("claim")
+        })
+
+    # -----------------------------
+    # COUNTERFACTUAL ISSUES
+    # -----------------------------
+    for cf in counterfactual:
+        details.append({
+            "type": "counterfactual",
+            "issue": cf.get("issue"),
+            "severity": cf.get("severity"),
+            "claim": cf.get("claim")
+        })
+
+    # -----------------------------
+    # SUMMARY BUILDING
+    # -----------------------------
+    if policy_violations:
+        summary.append("policy violations detected")
+
+    if inconsistencies:
+        summary.append("logical inconsistencies found")
+
+    if counterfactual:
+        summary.append("decision is fragile under counterfactual testing")
 
     if confidence < 0.5:
-        reasons.append("low overall confidence")
+        summary.append("low confidence score")
 
-    if not reasons:
-        reasons.append("strong supporting evidence and consistent logic")
+    if not summary:
+        summary.append("no major issues detected")
 
-    reason_text = ", ".join(reasons).capitalize()
-
-    return f"Verdict: {verdict}. Reason: {reason_text}."
+    return {
+        "verdict": verdict,
+        "confidence": round(confidence, 3),
+        "risk": risk,
+        "summary": summary,
+        "details": details
+    }

@@ -3,19 +3,49 @@ from core.constants import ACCEPT, REJECT, ESCALATE
 from services.explanation import build_explanation
 from services.persistence import save_audit
 
+
 def verdict_engine(state):
+
     confidence = float(state.get("confidence", 0))
     confidence = max(0.0, min(1.0, confidence))
 
-    has_claims = len(state.get("claims", [])) > 0
-    has_evidence = len(state.get("evidence", [])) > 0
+    claims = state.get("claims", [])
+    evidence = state.get("evidence", [])
 
-    if not has_claims:
+    inconsistencies = state.get("inconsistencies", [])
+    policy_violations = state.get("policy_violations", [])
+    counterfactual_issues = state.get("counterfactual_issues", [])
+
+    risk = state.get("risk_level", "MEDIUM")
+
+    # -----------------------------
+    # HARD FAIL CONDITIONS
+    # -----------------------------
+    if not claims:
         verdict = "INSUFFICIENT_DATA"
 
-    elif not has_evidence:
+    elif not evidence:
         verdict = "LOW_EVIDENCE"
 
+    # HIGH severity policy violation → reject
+    elif any(v.get("severity") == "HIGH" for v in policy_violations):
+        verdict = REJECT
+
+    # -----------------------------
+    # ESCALATION CONDITIONS
+    # -----------------------------
+    elif counterfactual_issues:
+        verdict = ESCALATE
+
+    elif inconsistencies and risk != "LOW":
+        verdict = ESCALATE
+
+    elif risk == "HIGH":
+        verdict = ESCALATE
+
+    # -----------------------------
+    # CONFIDENCE-BASED DECISION
+    # -----------------------------
     else:
         if confidence >= ACCEPT_THRESHOLD:
             verdict = ACCEPT
@@ -24,8 +54,14 @@ def verdict_engine(state):
         else:
             verdict = REJECT
 
+    # -----------------------------
+    # EXPLANATION
+    # -----------------------------
     explanation = build_explanation(state)
 
+    # -----------------------------
+    # SAVE
+    # -----------------------------
     audit_id = save_audit({
         **state,
         "verdict": verdict,

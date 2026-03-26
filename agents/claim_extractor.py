@@ -3,25 +3,34 @@ from utils.llm import call_llm
 
 
 def claim_extractor(state: AuditState):
+    reasoning = state.get("reasoning", "").strip()
 
-    reasoning = state.get("reasoning", "")
+    if not reasoning:
+        state["claims"] = []
+        return state
 
     prompt = f"""
 Break the following reasoning into minimal factual claims.
 
 Rules:
 1. One claim per line.
-2. Claims must be checkable.
+2. Claims must be checkable and specific.
 3. Do not merge ideas.
 4. Do not explain.
-5. Return ONLY numbered list.
+5. No headings, no extra text.
+6. Return ONLY numbered list.
 
 Reasoning:
 {reasoning}
 """
 
-    response = call_llm(prompt)
-    raw_output = response.content if hasattr(response, "content") else str(response)
+    try:
+        response = call_llm(prompt)
+        raw_output = response.content if hasattr(response, "content") else str(response)
+    except Exception:
+        # fallback if LLM fails
+        state["claims"] = [reasoning]
+        return state
 
     lines = raw_output.split("\n")
     claims = []
@@ -29,19 +38,45 @@ Reasoning:
     for line in lines:
         line = line.strip()
 
-        if not line or len(line) < 3:
+        # skip empty / junk
+        if not line or len(line) < 5:
             continue
 
-        if "." in line[:3]:
-            line = line.split(".", 1)[1].strip()
+        # remove numbering (1. 2. etc)
+        if "." in line[:4]:
+            parts = line.split(".", 1)
+            if parts[0].isdigit():
+                line = parts[1].strip()
 
+        # remove bullets
         if line.startswith("-"):
             line = line[1:].strip()
 
-        if line.lower().startswith("explanation"):
+        # skip unwanted text
+        if line.lower().startswith(("explanation", "note", "here")):
+            continue
+
+        # basic validation
+        if len(line.split()) < 3:
             continue
 
         claims.append(line)
 
-    state["claims"] = claims
+    # remove duplicates while preserving order
+    seen = set()
+    unique_claims = []
+    for c in claims:
+        if c not in seen:
+            seen.add(c)
+            unique_claims.append(c)
+
+    # limit (LLM kabhi 50 lines de deta hai)
+    MAX_CLAIMS = 10
+    unique_claims = unique_claims[:MAX_CLAIMS]
+
+    # fallback if nothing extracted
+    if not unique_claims:
+        unique_claims = [reasoning]
+
+    state["claims"] = unique_claims
     return state
