@@ -188,17 +188,8 @@ View REST endpoints on [Swagger UI](http://127.0.0.1:8000/docs).
 
 ## Frontend (`frontend/`)
 
-The repository includes a modern React + Vite application tailored for an AI decision workflow viewing detailed break-downs.
-
-```bash
-cd frontend
-npm install
-# Set VITE_API_URL if needed
-npm run dev
-```
-
-Run http://localhost:5173 to access the dashboard where you can request audits and resolve pending `ESCALATE` verdicts.
-
+ demo streamlit UI:
+> streamlit run streamlit_app.py
 
 ## Docker Usage
 
