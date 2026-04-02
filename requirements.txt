@@ -13,3 +13,5 @@ langchain_groq
 langchain_core
 redis
 fakeredis
+streamlit
+requests

@@ -1,68 +1,68 @@
-# Autonomous Decision Auditor
+# Autonomous Decision Auditor (ADA)
 
-An AI-powered multi-agent system that evaluates the logical strength of a reasoning paragraph and produces a final verdict with confidence and human-readable explanation.
+An AI-powered multi-agent system that evaluates the logical strength of a reasoning paragraph, cross-references it against injected policies, and produces a final verdict with confidence, human-readable explanations, and granular breakdowns.
 
-The system simulates a structured reasoning pipeline using multiple specialized agents coordinated through LangGraph, exposed via a FastAPI backend, and supported by persistence and explanation layers.
+The system simulates a structured reasoning pipeline using multiple specialized agents coordinated through LangGraph, exposed via a FastAPI backend, and supported by persistence and explanation layers. Recent architecture upgrades include **Granular Explainability**, **Policy Injection**, and a **Human-in-the-Loop (HITL)** workflow.
 
 ## Features
 
-Multi-Agent Logical Reasoning
+- **Multi-Agent Logical Reasoning**: 6 distinct agents for extracting claims, mapping evidence, checking consistency, evaluating policies, and stress-testing reasoning.
+- **Policy Injection**: Dynamically validate reasoning and evidence against injected, custom rules.
+- **Granular Explainability**: Provides a robust breakdown including rule violations, stability checks, and counterfactual results alongside high-level verdicts.
+- **Human-in-the-Loop (HITL) Resolution**: Escalates borderline or unresolvable claims to a human reviewer to finalize the verdict.
+- **Conditional Routing & Retry Logic**: Uses LangGraph for complex conditional branching and retries to handle inadequate evidence mappings.
+- **Confidence-Based Verdict Engine**: Evaluates evidence strength to accurately emit `ACCEPT`, `REJECT`, or `ESCALATE` verdicts.
+- **Audit History Persistence**: Automatically stores reasoning, generated verdicts, confidence, explanations, breakdowns, and human review history to PostgreSQL.
+- **LLM Caching**: Uses Redis for caching responses to optimize for latency and limit API cost.
 
-Conditional Routing & Retry Logic
+## Project Structure
 
-Confidence-Based Verdict Engine
-
-Human-Readable Explanations
-
-Audit History Persistence (Database)
-
-REST API Interface
-
-Modular & Scalable Architecture
-
-### Project Structure
 ```
 │
 ├── app/
-│   ├── main.py                  # FastAPI entry point
+│   └── main.py                  # FastAPI entry point
 │
-│   ├── api/
-│   │   ├── routes.py            # API endpoints (/audit)
-│   │   └── schemas.py           # Pydantic input/output models
+├── api/
+│   ├── routes.py                # API endpoints (/audit, /audit/{id}/resolve)
+│   └── schemas.py               # Pydantic input/output & HITL models
 │
-│   ├── core/
-│   │   ├── config.py            # Environment variables, thresholds
-│   │   ├── constants.py         # Verdict enums & retry limits
-│   │   └── logger.py            # Logging configuration
+├── core/
+│   ├── config.py                # Environment variables, thresholds
+│   ├── constants.py             # Verdict enums & retry limits
+│   └── logger.py                # Logging configuration
 │
-│   ├── agents/
-│   │   ├── state.py             # Shared LangGraph state
-│   │   ├── claim_extractor.py   # Agent 1: Extract claims
-│   │   ├── evidence_mapper.py   # Agent 2: Map evidence
-│   │   ├── consistency_checker.py # Agent 3: Logical gap detection
-│   │   ├── counterfactual.py    # Agent 4: Stress test reasoning
-│   │   └── confidence_scorer.py # Agent 5: Confidence calculation
+├── agents/
+│   ├── state.py                 # Shared LangGraph state
+│   ├── claim_extractor.py       # Agent 1: Extract claims
+│   ├── evidence_mapper.py       # Agent 2: Map evidence
+│   ├── consistency_checker.py   # Agent 3: Logical gap detection
+│   ├── policy_checker.py        # Agent 4: Policy rule validation
+│   ├── counterfactual.py        # Agent 5: Stress test reasoning
+│   ├── confidence_scorer.py     # Agent 6: Confidence calculation
+│   └── retry_handler.py         # Handles graph retry loops
 │
-│   ├── graph/
-│   │   ├── audit_graph.py       # LangGraph workflow definition
-│   │   └── routing.py           # Conditional branching logic
+├── graph/
+│   ├── audit_graph.py           # LangGraph workflow definition
+│   └── routing.py               # Conditional branching logic
 │
-│   ├── rules/
-│   │   └── verdict_engine.py    # Final ACCEPT / REJECT / ESCALATE decision
+├── rules/
+│   └── verdict_engine.py        # Final ACCEPT / REJECT / ESCALATE rules
 │
-│   ├── services/
-│   │   ├── normalizer.py        # Input cleanup & preprocessing
-│   │   ├── explanation.py       # Human-readable reasoning output
-│   │   └── persistence.py       # Database save logic
+├── services/
+│   ├── normalizer.py            # Input cleanup & preprocessing
+│   ├── explanation.py           # Human-readable reasoning output
+│   ├── persistence.py           # Database save logic
+│   └── redis_cache.py           # In-memory caching
 │
-│   ├── db/
-│   │   ├── session.py           # Database connection
-│   │   └── models.py            # Audit table definitions
+├── db/
+│   ├── session.py               # Database connection
+│   └── models.py                # Audit & HITL DB table definitions
 │
-│   └── utils/
-│       ├── llm.py               # LLM wrapper
-│       └── helpers.py           # Reusable utility functions
+├── utils/
+│   ├── llm.py                   # LLM wrapper
+│   └── helpers.py               # Reusable utility functions
 │
+├── frontend/                    # Vite + React Interface
 ├── tests/                       # Unit & integration tests
 ├── .env.example                 # Environment variable template
 ├── requirements.txt             # Dependencies
@@ -70,145 +70,144 @@ Modular & Scalable Architecture
 └── README.md                    # Project documentation
 ```
 
+## System Workflow
 
-### Agents Overview
-Agent	Responsibility
-Claim Extractor	Breaks reasoning into individual claims
-Evidence Mapper	Finds supporting proof for each claim
-Consistency Checker	Detects logical contradictions
-Counterfactual	Stress-tests the claim strength
-Confidence Scorer	Produces a numerical confidence score
-
-#### System Workflow
 ```
-Reasoning Paragraph
-      ↓
-Claim Extractor
-      ↓
-Evidence Mapper
-      ↓
-Consistency Checker
-      ↓
-Counterfactual
-      ↓
-Confidence Scorer
-      ↓
-Verdict Engine
-      ↓
-Explanation Builder
-      ↓
-Database Persistence
-      ↓
-API Response
+Reasoning Paragraph + Evidence + Policies
+                   ↓
+            Claim Extractor
+                   ↓
+            Evidence Mapper  ← (Retry Loop)
+                   ↓
+          Consistency Checker
+                   ↓
+            Policy Checker
+                   ↓
+            Counterfactual
+                   ↓
+          Confidence Scorer
+                   ↓
+            Verdict Engine
+                   ↓
+          Explanation Builder
+                   ↓
+         Database Persistence
+                   ↓
+             API Response
+                   ↓
+       (Optional) HITL Resolution
 ```
 
-#### API Endpoint
-POST /audit
+## API Endpoints
 
-- Request
+### 1. `POST /audit`
+Run an audit on a reasoning paragraph with optional evidence and custom policies.
 
+**Request:**
+```json
 {
-  "reasoning": "AI improves productivity by automating repetitive tasks."
+  "reasoning": "We should deploy to production today because the build passed.",
+  "evidence": ["Build 403 passed successfully."],
+  "policies": ["No Friday deployments allowed unless hotfix."]
 }
+```
 
-
-- Response
-
+**Response:**
+```json
 {
-  "verdict": "ACCEPT",
-  "confidence": 0.82,
-  "explanation": "Strong supporting evidence and consistent logic detected."
+  "verdict": "ESCALATE",
+  "confidence": 0.45,
+  "explanation": {
+    "summary": "Reasoning conflicts with Friday deployment policy."
+  },
+  "breakdown": {
+    "rule_violations": [
+      {
+         "rule_name": "Friday Deployment Policy",
+         "description": "Deployment requested on a Friday without hotfix justification."
+      }
+    ],
+    "counterfactual": {
+      "changed": true,
+      "details": "If it were not Friday, it would be deployed."
+    }
+  },
+  "audit_id": 105
 }
+```
 
-#### Setup & Installation
-1. Clone Repository
+### 2. `POST /audit/{audit_id}/resolve`
+For scenarios where the audit engine returns an `ESCALATE` verdict, use this endpoint for Human-In-The-Loop resolution.
+
+**Request:**
+```json
+{
+  "final_verdict": "REJECT",
+  "reviewer_notes": "Confirmed it is Friday and this is not a hotfix. Denied."
+}
+```
+
+
+## Setup & Installation
+
+**1. Clone Repository**
+```bash
 git clone https://github.com/Kunal-t20/Autonomous_Decision_Auditor.git
 cd Autonomous_Decision_Auditor
+```
 
-2. Create Virtual Environment
+**2. Local Environments Setup**
+- **Windows**:
+  ```bash
+  python -m venv venv
+  venv\Scripts\activate
+  ```
+- **Mac/Linux**:
+  ```bash
+  python3 -m venv venv
+  source venv/bin/activate
+  ```
 
-Windows
+**3. Install Dependencies**
+```bash
+pip install -r requirements.txt
+```
 
-python -m venv venv
-venv\Scripts\activate
+**4. Configurations (`.env`)**
+Copy `.env.example` to `.env` and set parameters up. The system optionally connects to PostgreSQL for audits and Redis for caching.
+
+- **PostgreSQL**: Set `DATABASE_URL` (local or managed like Neon)
+- **Redis Cache (Optional)**: Set `REDIS_ENABLED=true` and provide a `REDIS_URL`. If `true`, the system caches LLM outputs and applies rate-limiting logic.
+
+**5. Run the Engine locally**
+```bash
+uvicorn app.main:app --reload
+```
+View REST endpoints on [Swagger UI](http://127.0.0.1:8000/docs).
 
 
-Mac/Linux
+## Frontend (`frontend/`)
 
-python3 -m venv venv
-source venv/bin/activate
-
-3. Install Dependencies
-- pip install -r requirements.txt
-
-4. Run Server
-- uvicorn app.main:app --reload
-
-
-- Open Swagger UI:
-
-http://127.0.0.1:8000/docs
-
-#### Database
-
-Uses **PostgreSQL** (e.g. **Neon**). Set `DATABASE_URL` in `.env` (see [`.env.example`](.env.example)).
-
-Automatically stores audit history:
-
-Reasoning
-
-Verdict
-
-Confidence
-
-Explanation
-
-Timestamp
-
-#### Redis (optional)
-
-Redis caches **LLM responses** (same model + temperature + prompt) to reduce latency and API cost. It does **not** replace PostgreSQL.
-
-| Variable | Description |
-|----------|-------------|
-| `REDIS_ENABLED` | `true` / `false` (default: off for local dev without Redis) |
-| `REDIS_URL` | e.g. `redis://localhost:6379/0` or managed Redis URL |
-| `LLM_CACHE_TTL_SECONDS` | TTL for cached LLM text (default `86400`) |
-| `LLM_CACHE_KEY_PREFIX` | Key namespace prefix (default `llm:v1:`) |
-| `RATE_LIMIT_ENABLED` | `true` to rate-limit `POST /audit` (requires Redis) |
-| `RATE_LIMIT_PER_MINUTE` | Max requests per client IP per minute |
-
-- **`GET /health`** — reports `database` and `redis` status (`redis` is `disabled` when `REDIS_ENABLED=false`).
-
-#### Frontend (`frontend/`)
-
-The UI is **React + Vite** (JSX) with **TanStack Query**, themed for an AI/decision workflow (dark slate, cyan/violet accents).
+The repository includes a modern React + Vite application tailored for an AI decision workflow viewing detailed break-downs.
 
 ```bash
 cd frontend
 npm install
-copy .env.example .env   # optional: set VITE_API_URL (default http://127.0.0.1:8000)
+# Set VITE_API_URL if needed
 npm run dev
 ```
 
-Open **http://localhost:5173** with the API running on port **8000**. CORS allows the Vite dev origin.
+Run http://localhost:5173 to access the dashboard where you can request audits and resolve pending `ESCALATE` verdicts.
 
-- **`POST /audit`** — form submits reasoning, evidence lines, policy lines.
-- **`POST /audit/{audit_id}/resolve`** — shown when verdict is **ESCALATE** (uses **`audit_id`** from the audit response).
 
-Production build: `npm run build` → static files in `frontend/dist/`.
+## Docker Usage
 
-#### Docker
-
+To run the backend server and its dependencies (Redis) with Docker:
 ```bash
 docker compose up --build
 ```
 
-Set `DATABASE_URL` in `.env` (Neon or local Postgres). Compose wires **`REDIS_URL=redis://redis:6379/0`** for the app service.
+You can seamlessly connect it to your external Neon Postgres DB by exporting the `DATABASE_URL` in `.env`.
 
-#### CI/CD
-
-GitHub Actions (`.github/workflows/ci.yml`):
-
-- **test** job: Postgres + Redis services, `TEST_MODE=true`, `pytest`
-- **docker-build** job: builds the Docker image (no push; add registry login + `push: true` when you deploy)
+## CI/CD Workflow
+Tests are configured using pytest, orchestrated by GitHub Actions across `ci.yml`. Tests include API validation, Graph conditional routing verifications, logic handlers, and Redis + Postgres spin ups.
